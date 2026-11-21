@@ -1,0 +1,165 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GREEN HERO ENGLISH 500 - REBUILT</title><style>
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(130deg,#e1f8e6,#eaf4ff);font:16px system-ui;color:#164532}.wrap{max-width:1250px;margin:auto;padding:16px}header,.stats,.buttons{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between}h1{color:#087b52;margin:6px 0}.stats span,.panel,.stage{background:white;border-radius:18px;padding:12px;box-shadow:0 8px 25px #173e2420}.layout{display:grid;grid-template-columns:1fr 280px;gap:14px;margin-top:15px}.stage{padding:5px;position:relative;overflow:hidden}canvas{display:block;width:100%;background:#a5d6a7;border-radius:15px}.panel{padding:20px}.panel p{line-height:1.6}button,select,input{font:inherit;border-radius:9px;padding:10px;border:1px solid #a9d4bc}button{background:#087d56;color:white;cursor:pointer;font-weight:700}button:hover{filter:brightness(1.08)}.buttons{justify-content:center;margin:12px}.buttons button{min-width:85px}.overlay{position:fixed;inset:0;background:#092a23b9;display:grid;place-items:center;padding:15px;z-index:10}.overlay.hidden{display:none}.modal{background:white;border-radius:22px;padding:26px;width:min(620px,100%);max-height:94vh;overflow:auto}.modal h2{margin:10px 0}.choice{display:block;width:100%;margin:8px 0;text-align:left;background:#eef8f1;color:#194a36;border:1px solid #b7dac7}.choice:disabled{opacity:.65}.note{background:#e4f5ea;padding:12px;border-radius:12px;margin:12px 0}.hidden{display:none!important}@media(max-width:850px){.layout{grid-template-columns:1fr}} 
+</style></head><body><div class="wrap"><header><div><small>THE SCHOOLYARD CHALLENGE</small><h1>🌿 GREEN HERO ENGLISH 500</h1><small>Nhặt rác • Nghe phát âm • Học tiếng Anh</small></div><div class="stats"><span>⭐ <b id="score">0</b></span><span>♻️ <b id="done">0</b>/<b id="goal">20</b></span><span>⏳ <b id="clock">08:00</b></span><span>❤️ <b id="lives">5</b></span></div></header>
+<div class="layout"><div><div class="stage"><canvas id="game" width="960" height="700"></canvas></div><div class="buttons"><button data-dir="ArrowUp">↑</button><button data-dir="ArrowLeft">←</button><button data-dir="ArrowDown">↓</button><button data-dir="ArrowRight">→</button><button id="pick">✋ NHẶT (Space)</button><button id="drop">♻️ BỎ RÁC (E)</button></div></div><aside class="panel"><h2>🎯 Nhiệm vụ xanh</h2><p>500 vật phẩm rác thuộc 3 nhóm. Mỗi lượt tối đa 5 vật phẩm xuất hiện trên sân.</p><p>🔊 Nhặt rác để nghe tên bằng tiếng Anh.</p><p>📚 Câu hỏi tiếng Anh ngẫu nhiên: 60% trắc nghiệm, 40% điền từ; có 3 độ khó.</p><label>Độ khó <select id="level"><option>Tất cả</option><option>Dễ</option><option>Trung bình</option><option>Khó</option></select></label><p>🎮 Di chuyển WASD / mũi tên. Space nhặt; E bỏ rác; A/B/C/D chọn đáp án.</p><p id="hint">Bấm Bắt đầu chơi để vào sân trường.</p><button id="restart">↻ Chơi lượt mới</button><button id="sound">🔊 Giọng đọc: Bật</button></aside></div></div>
+<div class="overlay" id="overlay"><div class="modal" id="modal"><h2>🌍 GREEN HERO ENGLISH</h2><p>Game đã sẵn sàng. Chọn số món rác rồi bắt đầu!</p><button id="fallbackStart">🚀 BẮT ĐẦU CHƠI</button></div></div>
+<script>
+"use strict";
+const $=id=>document.getElementById(id),canvas=$('game'),ctx=canvas.getContext('2d'),W=960,H=700;
+const cats=[{id:'plastic',name:'NHỰA',color:'#298de4',x:175},{id:'organic',name:'HỮU CƠ',color:'#24a766',x:480},{id:'paper',name:'GIẤY',color:'#e2a92a',x:785}];
+const roots=[
+['plastic','Chai nhựa','plastic bottle','🧴'],['plastic','Ly nhựa','plastic cup','🥤'],['plastic','Túi ni lông','plastic bag','🛍️'],['plastic','Ống hút nhựa','plastic straw','🥤'],['plastic','Nắp chai','bottle cap','🔵'],['plastic','Hộp nhựa','plastic container','📦'],['plastic','Thìa nhựa','plastic spoon','🥄'],['plastic','Bao bì nhựa','plastic wrapper','🍬'],['plastic','Bàn chải nhựa','plastic toothbrush','🪥'],['plastic','Chai dầu gội','shampoo bottle','🧴'],['plastic','Vỏ bút nhựa','plastic pen casing','🖊️'],['plastic','Hộp sữa chua','yogurt pot','🥣'],['plastic','Màng bọc thực phẩm','cling film','🫙'],['plastic','Hộp xà phòng','soap dispenser','🧴'],['plastic','Hộp đựng đồ','storage box','📦'],['plastic','Muỗng nhựa','plastic ladle','🥄'],['plastic','Đĩa nhựa','plastic plate','🍽️'],
+['organic','Vỏ chuối','banana peel','🍌'],['organic','Lõi táo','apple core','🍎'],['organic','Vỏ cam','orange peel','🍊'],['organic','Lá khô','dry leaves','🍂'],['organic','Cọng rau','vegetable stalk','🥬'],['organic','Bã cà phê','coffee grounds','☕'],['organic','Vỏ trứng','eggshell','🥚'],['organic','Vỏ khoai','potato peel','🥔'],['organic','Vỏ xoài','mango peel','🥭'],['organic','Vỏ dưa','melon rind','🍉'],['organic','Hoa héo','wilted flowers','🥀'],['organic','Bã trà','tea leaves','🍵'],['organic','Cơm thừa','leftover rice','🍚'],['organic','Vỏ hành','onion skin','🧅'],['organic','Vỏ tỏi','garlic skin','🧄'],['organic','Cỏ cắt','grass clippings','🌿'],['organic','Cành cây nhỏ','small twigs','🌱'],
+['paper','Tờ giấy','sheet of paper','📄'],['paper','Báo cũ','old newspaper','📰'],['paper','Hộp giấy','cardboard box','📦'],['paper','Sách cũ','old book','📚'],['paper','Vở cũ','used notebook','📓'],['paper','Giấy gói','wrapping paper','🎁'],['paper','Tờ rơi','flyer','📃'],['paper','Bìa carton','cardboard','📦'],['paper','Giấy nháp','scrap paper','📝'],['paper','Lịch giấy','paper calendar','📅'],['paper','Túi giấy','paper bag','🛍️'],['paper','Bưu thiếp','postcard','💌'],['paper','Phong bì','envelope','✉️'],['paper','Hộp ngũ cốc','cereal box','🥣'],['paper','Giấy in','printer paper','🖨️'],['paper','Tạp chí','magazine','📖']];
+const conditions=[['',''],['đã qua sử dụng','used'],['bị nhàu','crumpled'],['bị bẩn','dirty'],['bị rách','torn'],['cỡ nhỏ','small'],['cỡ lớn','large'],['cũ','old'],['bị ướt','wet'],['đã bỏ đi','discarded']];
+const items=Array.from({length:500},(_,i)=>{const r=roots[i%roots.length],v=conditions[Math.floor(i/roots.length)%conditions.length];return {cat:r[0],name:(r[1]+' '+v[0]).trim(),en:(v[1]+' '+r[2]).trim(),emoji:r[3]};});
+const grammar=[
+['She ___ to school every day.','goes',['go','going','gone'],'Dễ','Present simple: she goes.'],
+['We ___ recycle plastic bottles.','should',['shoulds','shoulding','should to'],'Dễ','Use should + base verb.'],
+['There ___ many trees in our schoolyard.','are',['is','be','was'],'Dễ','Plural noun: there are.'],
+['He ___ English at the moment.','is studying',['studies','study','studied'],'Trung bình','Present continuous for an action happening now.'],
+['If it rains, we ___ indoors.','will stay',['stayed','would stay','staying'],'Trung bình','First conditional: if + present, will + verb.'],
+['The bottles ___ yesterday.','were recycled',['recycled','are recycling','was recycled'],'Trung bình','Past simple passive, plural subject.'],
+['Hardly ___ the lesson begun when the bell rang.','had',['has','did','was'],'Khó','Inversion after hardly: hardly had + subject + past participle.'],
+['Not only ___ she reduce waste, but she also inspired others.','did',['does','was','had'],'Khó','Inversion with not only + did + subject + verb.'],
+['Were it not for recycling, more waste ___ in landfills.','would end up',['will end up','ended up','has ended up'],'Khó','Inverted second conditional.'],
+['I wish people ___ less plastic.','used',['use','will use','had used'],'Trung bình','Wish about the present uses past simple.'],
+['By next year, they ___ the project.','will have completed',['complete','completed','will completing'],'Khó','Future perfect for completion before a future point.'],
+['She is interested ___ environmental science.','in',['on','at','for'],'Dễ','Interested in.'],
+['Neither of the answers ___ correct.','is',['are','were','be'],'Trung bình','Neither of + plural noun generally takes a singular verb in formal usage.'],
+['The more we recycle, ___ waste we produce.','the less',['less','the fewer','fewer'],'Khó','Comparative correlative; waste is uncountable.'],
+['This is the student ___ project won first prize.','whose',['who','whom','which'],'Trung bình','Whose indicates possession.']];
+const vocab=[
+['Which word means "to use something again"?','reuse',['refuse','reduce','remove'],'Dễ'],
+['Which is the opposite of "polluted"?','clean',['dirty','toxic','contaminated'],'Dễ'],
+['A person who studies the environment is an ___.','environmentalist',['accountant','architect','electrician'],'Trung bình'],
+['Which word is closest in meaning to "mitigate"?','alleviate',['aggravate','intensify','provoke'],'Khó'],
+['Which adjective means "able to decompose naturally"?','biodegradable',['indestructible','synthetic','permanent'],'Trung bình'],
+['Which expression means "to take responsibility"?','be accountable',['turn a blind eye','pass the buck','cut corners'],'Khó'],
+['What is the English word for "tái chế"?','recycle',['replace','relocate','rehearse'],'Dễ'],
+['Which noun describes a long-term shortage of water?','drought',['flood','harvest','breeze'],'Trung bình'],
+['Which word means "careful use of resources"?','conservation',['consumption','contamination','congestion'],'Trung bình'],
+['Which phrase means "an unintended negative consequence"?','adverse effect',['added value','mutual benefit','positive outcome'],'Khó']];
+const vocabMeanings={"reuse": "tái sử dụng", "refuse": "từ chối", "reduce": "giảm bớt", "remove": "loại bỏ", "clean": "sạch sẽ", "dirty": "bẩn", "toxic": "độc hại", "contaminated": "bị ô nhiễm", "environmentalist": "nhà hoạt động hoặc chuyên gia về môi trường", "accountant": "kế toán viên", "architect": "kiến trúc sư", "electrician": "thợ điện", "alleviate": "làm dịu, giảm nhẹ", "aggravate": "làm trầm trọng thêm", "intensify": "làm tăng cường độ", "provoke": "kích động, gây ra", "biodegradable": "có khả năng phân hủy sinh học", "indestructible": "không thể phá hủy", "synthetic": "tổng hợp, nhân tạo", "permanent": "vĩnh viễn", "be accountable": "chịu trách nhiệm, có trách nhiệm giải trình", "turn a blind eye": "nhắm mắt làm ngơ", "pass the buck": "đùn đẩy trách nhiệm", "cut corners": "làm tắt, làm ẩu", "recycle": "tái chế", "replace": "thay thế", "relocate": "di dời", "rehearse": "diễn tập", "drought": "hạn hán", "flood": "lũ lụt", "harvest": "vụ thu hoạch; thu hoạch", "breeze": "gió nhẹ", "conservation": "sự bảo tồn; sử dụng tài nguyên tiết kiệm", "consumption": "sự tiêu thụ", "contamination": "sự nhiễm bẩn", "congestion": "sự tắc nghẽn", "adverse effect": "tác động bất lợi", "added value": "giá trị gia tăng", "mutual benefit": "lợi ích chung", "positive outcome": "kết quả tích cực", "polluted": "bị ô nhiễm", "mitigate": "giảm nhẹ (tác hại)", "leaf": "lá cây", "leaves": "những chiếc lá", "teacher": "giáo viên"};
+let player={x:480,y:435},active=[],pool=[],carrying=null,unlocked=false,score=0,done=0,goal=20,lives=5,seconds=480,state='intro',keys=new Set(),last=0,question=null,soundOn=true,used=new Set();
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const positions=[[100,195],[250,255],[405,205],[570,260],[750,205],[850,345],[130,390],[360,380],[610,395],[820,445],[260,475],[530,480]];
+const dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
+// Prefer a Google US English voice when Chrome makes one available.
+// Otherwise use another en-US voice, then any English voice.
+let preferredEnglishVoice=null;
+function chooseEnglishVoice(){
+  if(!('speechSynthesis' in window))return null;
+  const voices=window.speechSynthesis.getVoices();
+  const english=voices.filter(v=>/^en([_-]|$)/i.test(v.lang));
+  const googleUS=english.find(v=>/google/i.test(v.name)&&/^en[-_]US$/i.test(v.lang));
+  const googleEnglish=english.find(v=>/google/i.test(v.name));
+  const usEnglish=english.find(v=>/^en[-_]US$/i.test(v.lang));
+  preferredEnglishVoice=googleUS||googleEnglish||usEnglish||english[0]||null;
+  return preferredEnglishVoice;
+}
+if('speechSynthesis' in window){
+  chooseEnglishVoice();
+  window.speechSynthesis.addEventListener('voiceschanged',chooseEnglishVoice);
+}
+let currentCloudAudio=null;
+let voiceRequestId=0;
+function browserSpeak(text){
+  if(!soundOn||!('speechSynthesis' in window))return;
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US';u.rate=0.9;u.volume=1;u.pitch=1;
+  u.voice=chooseEnglishVoice()||preferredEnglishVoice;
+  speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+async function speak(text,lang){
+  if(!soundOn)return;
+  const requestId=++voiceRequestId;
+  if(currentCloudAudio){currentCloudAudio.pause();currentCloudAudio.src='';currentCloudAudio=null;}
+  if('speechSynthesis' in window)speechSynthesis.cancel();
+  try{
+    const response=await fetch('/api/tts',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text:String(text).slice(0,120)})
+    });
+    if(!response.ok)throw new Error('Google Cloud TTS unavailable');
+    const data=await response.json();
+    if(requestId!==voiceRequestId||!soundOn)return;
+    if(!data.audioContent)throw new Error('No audio returned');
+    const audio=new Audio('data:audio/mp3;base64,'+data.audioContent);
+    currentCloudAudio=audio;
+    await audio.play();
+  }catch(error){
+    if(requestId===voiceRequestId&&soundOn){
+      console.warn('Using browser English voice:',error.message);
+      browserSpeak(text);
+    }
+  }
+}
+function pronounce(it){speak(it.en,'en-US')}
+function hud(){$('score').textContent=score;$('done').textContent=done;$('goal').textContent=goal;$('lives').textContent=lives;$('clock').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(Math.floor(seconds%60)).padStart(2,'0')}
+function message(t){$('hint').textContent=t}
+function spawn(){let available=shuffle(positions.map((_,i)=>i).filter(i=>!active.some(a=>a.pos===i)));while(active.length<5&&pool.length&&available.length)active.push({id:pool.pop(),pos:available.pop()})}
+function start(n){goal=n;seconds=n*24;score=done=0;lives=5;carrying=null;unlocked=false;player={x:480,y:435};pool=shuffle(items.map((_,i)=>i)).slice(0,n);active=[];used.clear();spawn();state='play';last=0;$('overlay').classList.add('hidden');hud();message('Đến gần một món rác và nhấn SPACE để nhặt.')}
+function welcome(){$('overlay').classList.remove('hidden');state='intro';$('modal').innerHTML='<h2>🌍 GREEN HERO ENGLISH 500 · CLOUD VOICE</h2><p>Nhặt rác, nghe phát âm tiếng Anh, trả lời câu hỏi tiếng Anh, phân loại rác đúng thùng.</p><p>Chọn nhiệm vụ: <select id="mode"><option value="20">20 món · 8 phút</option><option value="50">50 món · 20 phút</option><option value="100">100 món · 40 phút</option><option value="250">250 món · 100 phút</option><option value="500">500 món · 200 phút</option></select></p><button id="begin">🚀 BẮT ĐẦU CHƠI</button>';$('begin').onclick=()=>start(Number($('mode').value))}
+const fillTemplates=[
+{level:'Dễ',q:'I ___ (be) a student.',a:'am',why:'I am.'},
+{level:'Dễ',q:'She ___ (have) a reusable bottle.',a:'has',why:'She has.'},
+{level:'Dễ',q:'They ___ (be) happy today.',a:'are',why:'They are.'},
+{level:'Dễ',q:'The plural of “leaf” is ___.',a:'leaves',why:'Leaf → leaves.'},
+{level:'Dễ',q:'We should ___ (reuse) our shopping bags.',a:'reuse',why:'Should + bare infinitive.'},
+{level:'Dễ',q:'Yesterday, I ___ (walk) to school.',a:'walked',why:'Past simple of walk.'},
+{level:'Dễ',q:'The opposite of “dirty” is ___.',a:'clean',why:'Clean is the opposite of dirty.'},
+{level:'Dễ',q:'A person who teaches is a ___.',a:'teacher',why:'A teacher teaches.'},
+{level:'Trung bình',q:'If it rains, we ___ (stay) indoors.',a:'will stay',why:'First conditional: if + present, will + verb.'},
+{level:'Trung bình',q:'She has ___ (write) three essays.',a:'written',why:'Past participle of write is written.'},
+{level:'Trung bình',q:'The bottles were ___ (collect) yesterday.',a:'collected',why:'Passive: were + past participle.'},
+{level:'Trung bình',q:'He is interested ___ protecting nature.',a:'in',why:'Interested in + -ing.'},
+{level:'Trung bình',q:'I have lived here ___ 2020.',a:'since',why:'Since + starting point.'},
+{level:'Trung bình',q:'This bag is ___ (heavy) than that one.',a:'heavier',why:'Comparative: heavier.'},
+{level:'Trung bình',q:'By the time I arrived, she had ___ (leave).',a:'left',why:'Past perfect: had left.'},
+{level:'Trung bình',q:'Neither of the two answers ___ (be) correct.',a:'is',why:'Neither of takes a singular verb in formal English.'},
+{level:'Khó',q:'Hardly ___ the speech begun when the lights went out.',a:'had',why:'Hardly had + subject + past participle.'},
+{level:'Khó',q:'Not until the meeting ended ___ we understand the problem.',a:'did',why:'Not until at the front triggers inversion.'},
+{level:'Khó',q:'Were I in charge, I ___ (introduce) stricter recycling rules.',a:'would introduce',why:'Inverted second conditional.'},
+{level:'Khó',q:'The committee insisted that the report ___ (be) revised.',a:'be',why:'Mandative subjunctive uses the base form.'},
+{level:'Khó',q:'No sooner had she arrived ___ the storm began.',a:'than',why:'No sooner ... than.'},
+{level:'Khó',q:'It is high time we ___ (take) action.',a:'took',why:'It is high time + past simple.'},
+{level:'Khó',q:'Had they acted earlier, they ___ (prevent) the spill.',a:'would have prevented',why:'Inverted third conditional.'},
+{level:'Khó',q:'Under no circumstances ___ you dispose of batteries in ordinary bins.',a:'should',why:'Negative fronting triggers subject–auxiliary inversion.'}
+];
+function makeFillQuestion(){const level=$('level').value;const candidates=fillTemplates.filter(t=>level==='Tất cả'||t.level===level);const pick=candidates[Math.floor(Math.random()*candidates.length)];return {type:'fill',q:pick.q,correct:pick.a,difficulty:pick.level,explain:pick.why}}
+function normalizedAnswer(v){return String(v).normalize('NFKC').trim().toLowerCase().replace(/[’‘]/g,"'").replace(/\s+/g,' ')}
+function nextQuestion(){if(Math.random()<0.4)return makeFillQuestion();const level=$('level').value;const bank=[...grammar.map(x=>({type:'grammar',x})),...vocab.map(x=>({type:'vocab',x}))].filter(q=>level==='Tất cả'||q.x[q.type==='grammar'?3:3]===level);const available=bank.filter(q=>!used.has(q.type+q.x[0]));if(!available.length)used.clear();const choices=available.length?available:bank;const entry=choices[Math.floor(Math.random()*choices.length)]||{type:'grammar',x:grammar[0]};used.add(entry.type+entry.x[0]);let [q,correct,wrong,difficulty,explain]=entry.x;let opts=shuffle([correct,...wrong]);return {type:entry.type,q,correct,opts,difficulty,explain:explain||'Vocabulary practice.'}}
+function pick(){if(state!=='play'||carrying)return;let near=active.find(a=>dist(player.x,player.y,...positions[a.pos])<100);if(!near){message('Đến gần món rác hơn rồi nhấn Space.');return}carrying=near;active=active.filter(a=>a!==near);question=nextQuestion();pronounce(items[near.id]);state='quiz';$('overlay').classList.remove('hidden');renderQuestion()}
+function renderQuestion(){const it=items[carrying.id];$('modal').innerHTML='<p>🗑️ <b>'+it.name+'</b> — '+it.en+'</p><button id="replay">🔊 Nghe lại tên rác</button><p><small>English · '+question.difficulty+' · '+(question.type==='fill'?'Điền từ':'Trắc nghiệm')+'</small></p><h2>'+question.q+'</h2><div id="answers"></div><div id="feedback"></div>';$('replay').onclick=()=>pronounce(it);
+if(question.type==='fill'){$('answers').innerHTML='<form id="fillForm"><label for="fillInput">Nhập đáp án tiếng Anh:</label><input id="fillInput" autocomplete="off" spellcheck="false" placeholder="Type your answer here" style="width:100%;margin:10px 0" required><button type="submit">✓ Kiểm tra đáp án</button></form>';$('fillForm').onsubmit=e=>{e.preventDefault();submitAnswer(normalizedAnswer($('fillInput').value)===normalizedAnswer(question.correct))};$('fillInput').focus();return}
+question.opts.forEach((o,i)=>{const b=document.createElement('button');b.className='choice';b.textContent='ABCD'[i]+'. '+o;b.onclick=()=>answer(i);$('answers').appendChild(b)})}
+function answer(i){if(state!=='quiz'||question.type==='fill')return;submitAnswer(question.opts[i]===question.correct)}
+function escapeText(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function explainQuestion(q){
+ const explanation=q.explain||'Đây là cách dùng từ hoặc cấu trúc đúng trong ngữ cảnh của câu.';
+ if(q.type==='vocab'){
+   const meaning=vocabMeanings[q.correct]||'Chưa có bản dịch';
+   const other=(q.opts||[]).filter(x=>x!==q.correct).map(x=>escapeText(x)+' = '+escapeText(vocabMeanings[x]||'chưa có bản dịch')).join('; ');
+   return '<b>📖 Nghĩa tiếng Việt:</b> '+escapeText(q.correct)+' = <b>'+escapeText(meaning)+'</b>'+
+     '<p style="margin:8px 0"><b>Vì sao đúng?</b> '+escapeText(explanation)+'</p>'+
+     '<p style="margin:8px 0"><b>Nghĩa các phương án khác:</b> '+other+'</p>';
+ }
+ if(q.type==='fill' && ['clean','leaves','teacher'].includes(q.correct)){
+   return '<b>📖 Nghĩa tiếng Việt:</b> '+escapeText(q.correct)+' = <b>'+escapeText(vocabMeanings[q.correct])+'</b><p>'+escapeText(explanation)+'</p>';
+ }
+ const full=q.q.includes('___')?q.q.replace('___',q.correct):q.q;
+ return '<b>Quy tắc / lý do:</b> '+escapeText(explanation)+'<p style="margin:8px 0 0"><b>Câu hoàn chỉnh:</b> '+escapeText(full)+'</p>';
+}
+function submitAnswer(right){if(state!=='quiz'||$('feedback').dataset.answered)return;$('feedback').dataset.answered='yes';document.querySelectorAll('.choice').forEach(b=>b.disabled=true);const field=$('fillInput');if(field)field.disabled=true;const form=$('fillForm');if(form)form.querySelector('button').disabled=true;$('feedback').innerHTML='<div class="note">'+(right?'✅ Chính xác!':'❌ Chưa đúng. Đáp án: '+question.correct)+'<div style="margin-top:10px;padding:12px;border-left:4px solid #139667;background:#f4fbf6;border-radius:8px"><b>📘 Giải thích đáp án</b><p style="margin:7px 0">'+explainQuestion(question)+'</p><p style="margin:7px 0"><b>Đáp án đúng:</b> '+escapeText(question.correct)+'</p></div></div><button id="continue">Tiếp tục</button>';$('continue').onclick=()=>{if(right){score+=10;unlocked=true;state='sort';message('Đưa rác đến thùng đúng màu, nhấn E để bỏ.')}else{lives--;carrying=null;spawn();state='play';message('Sai đáp án, hãy nhặt món rác khác.')}hud();$('overlay').classList.add('hidden');if(lives<=0)finish(false)}}
+function drop(){if(state!=='sort'||!carrying)return;const cat=cats.find(c=>dist(player.x,player.y,c.x,610)<130);if(!cat){message('Đến gần một trong ba thùng rác phía dưới sân và nhấn E.');return}const it=items[carrying.id];if(cat.id!==it.cat){lives--;message('Sai thùng rác! Hãy thử lại.');hud();if(lives<=0)finish(false);return}done++;score+=20;carrying=null;unlocked=false;spawn();state='play';hud();message('♻️ Phân loại đúng! Tiếp tục nhặt rác.');if(done>=goal)finish(true)}
+function finish(won){state='end';$('overlay').classList.remove('hidden');$('modal').innerHTML='<h2>'+(won?'🏆 Hoàn thành!':'⏰ Kết thúc lượt chơi')+'</h2><p>Đã phân loại '+done+'/'+goal+' món rác. Điểm: '+score+'.</p><button id="again">↻ Chơi lại</button>';$('again').onclick=welcome}
+function roundRect(x,y,w,h,r,color){ctx.fillStyle=color;ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,w,h,r):ctx.rect(x,y,w,h);ctx.fill()}
+function draw(){ctx.clearRect(0,0,W,H);ctx.fillStyle='#8fce9c';ctx.fillRect(0,0,W,H);roundRect(15,20,930,140,18,'#f8f5dc');roundRect(40,40,880,95,12,'#e7b17c');ctx.fillStyle='#fef9de';ctx.font='bold 38px system-ui';ctx.textAlign='center';ctx.fillText('🏫 TRƯỜNG HỌC XANH',480,98);ctx.fillStyle='#c4dfb6';ctx.fillRect(0,165,960,375);for(let i=0;i<8;i++){let x=55+i*125;ctx.font='50px system-ui';ctx.fillText('🌳',x,190)}roundRect(0,548,960,152,0,'#d9bc92');cats.forEach(c=>{roundRect(c.x-72,565,144,125,15,c.color);ctx.fillStyle='white';ctx.font='35px system-ui';ctx.fillText('♻️',c.x,620);ctx.font='bold 17px system-ui';ctx.fillText(c.name,c.x,662)});active.forEach(a=>{const it=items[a.id],p=positions[a.pos];roundRect(p[0]-38,p[1]-39,76,77,13,'#ffffffdd');ctx.font='43px system-ui';ctx.fillText(it.emoji,p[0],p[1]+15)});ctx.font='64px system-ui';ctx.fillText('🧑‍🎓',player.x,player.y+17);if(carrying){ctx.font='40px system-ui';ctx.fillText(items[carrying.id].emoji,player.x+38,player.y-42)}}
+function frame(t){if(last&&['play','sort','quiz'].includes(state)){const dt=Math.min((t-last)/1000,.08);seconds-=dt;if(seconds<=0){seconds=0;finish(false)}if(state==='play'||state==='sort'){let dx=Number(keys.has('ArrowRight')||keys.has('d'))-Number(keys.has('ArrowLeft')||keys.has('a')),dy=Number(keys.has('ArrowDown')||keys.has('s'))-Number(keys.has('ArrowUp')||keys.has('w'));const len=Math.hypot(dx,dy)||1;player.x=Math.max(25,Math.min(935,player.x+dx/len*280*dt));player.y=Math.max(185,Math.min(645,player.y+dy/len*280*dt))}hud()}last=t;draw();requestAnimationFrame(frame)}
+window.addEventListener('keydown',e=>{if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(state==='quiz'){const n='abcd'.indexOf(e.key.toLowerCase());if(n>=0&&question)answer(n);return}if(e.key===' '&&!e.repeat)pick();else if(e.key.toLowerCase()==='e'&&!e.repeat)drop();else keys.add(e.key.length===1?e.key.toLowerCase():e.key)});window.addEventListener('keyup',e=>keys.delete(e.key.length===1?e.key.toLowerCase():e.key));window.addEventListener('blur',()=>keys.clear());
+document.querySelectorAll('[data-dir]').forEach(b=>{const k=b.dataset.dir;b.addEventListener('pointerdown',e=>{keys.add(k);b.setPointerCapture(e.pointerId)});for(const event of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(event,()=>keys.delete(k))});
+$('pick').onclick=pick;$('drop').onclick=drop;$('restart').onclick=welcome;$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent=soundOn?'🔊 Giọng đọc: Bật':'🔇 Giọng đọc: Tắt'};$('fallbackStart').onclick=()=>start(20);
+welcome();requestAnimationFrame(frame);
+</script></body></html>
